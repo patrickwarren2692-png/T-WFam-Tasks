@@ -3,103 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family CleanSync | Modern</title>
+    <title>Family CleanSync | Visual Pro</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
         :root {
-            --primary: #6366f1; /* Indigo */
-            --secondary: #4f46e5;
+            --primary: #6366f1;
             --success: #10b981;
             --danger: #ef4444;
-            --warning: #f59e0b;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
+            --bg: #f1f5f9;
+            --glass: rgba(255, 255, 255, 0.8);
         }
 
         body { 
-            font-family: 'Inter', system-ui, -apple-system, sans-serif; 
-            background: var(--bg); color: var(--text); padding: 20px; margin: 0;
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            min-height: 100vh; padding: 20px; margin: 0;
         }
 
         .container { max-width: 1200px; margin: 0 auto; }
         
-        .header { text-align: center; margin-bottom: 40px; }
-        .header h1 { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin: 0; }
-        .header p { color: #64748b; margin-top: 5px; }
+        /* Header & Progress */
+        .header { text-align: center; margin-bottom: 30px; }
+        .progress-container {
+            width: 100%; background: #e2e8f0; border-radius: 10px; height: 12px; margin: 20px 0; overflow: hidden;
+        }
+        #progressBar { 
+            width: 0%; height: 100%; background: var(--success); 
+            transition: width 0.5s ease-in-out; 
+        }
 
-        /* Modern Controls */
-        .controls-wrapper {
-            background: var(--card); padding: 25px; border-radius: 20px;
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05); margin-bottom: 30px;
+        /* Controls Panel */
+        .glass-panel {
+            background: var(--glass); backdrop-filter: blur(10px);
+            padding: 25px; border-radius: 20px; border: 1px solid white;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 30px;
         }
 
         .controls { 
             display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
-            align-items: flex-end;
         }
 
-        .field { display: flex; flex-direction: column; gap: 8px; }
-        label { font-weight: 600; font-size: 0.8rem; color: #475569; }
-        
         select, input, button { 
-            padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; 
-            font-size: 1rem; transition: all 0.2s;
+            padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 1rem;
         }
-
-        input:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
 
         button { 
-            background: var(--primary); color: white; border: none; font-weight: 600; 
-            cursor: pointer; box-shadow: 0 4px 6px -1px rgba(99,102,241,0.2);
+            background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
         }
-        button:hover { background: var(--secondary); transform: translateY(-1px); }
+        button:hover { background: #4f46e5; transform: translateY(-2px); }
 
-        /* Filter Section */
-        .filter-section {
-            display: flex; justify-content: center; gap: 10px; margin-bottom: 30px; flex-wrap: wrap;
+        /* Filters */
+        .filters { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; }
+        .filter-chip {
+            padding: 8px 16px; border-radius: 20px; background: white; border: 1px solid #cbd5e1;
+            cursor: pointer; font-size: 0.9rem; transition: 0.3s;
         }
-        .filter-btn {
-            padding: 8px 20px; border-radius: 99px; background: #e2e8f0; color: #475569;
-            font-size: 0.9rem; border: none; cursor: pointer; transition: 0.3s;
-        }
-        .filter-btn.active { background: var(--primary); color: white; }
+        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* Calendar Grid */
+        /* Calendar */
         .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .day-column { 
-            background: rgba(255,255,255,0.5); padding: 20px; border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.8); backdrop-filter: blur(10px);
+        .day-card { 
+            background: var(--glass); padding: 20px; border-radius: 20px; 
+            border: 1px solid white; min-height: 200px;
         }
-        .day-header { 
-            font-size: 1.2rem; font-weight: 700; margin: 0 0 20px 0; 
-            padding-bottom: 10px; border-bottom: 2px solid #e2e8f0; color: var(--primary);
-        }
+        .day-header { font-weight: 800; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
 
-        /* Task Cards */
-        .task-card { 
-            background: var(--card); padding: 16px; border-radius: 16px; margin-bottom: 15px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
+        /* Tasks */
+        .task-item {
+            background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: 0.3s;
         }
-        .task-card.completed { border-left: 4px solid var(--success); opacity: 0.8; }
-        .task-card.completed strong { text-decoration: line-through; color: #94a3b8; }
-        
-        .name-badge { 
-            display: inline-block; padding: 4px 10px; border-radius: 8px; 
-            font-size: 0.75rem; font-weight: 700; margin-bottom: 8px;
-            background: #eff6ff; color: var(--primary);
+        .task-item.completed { opacity: 0.6; border-left: 5px solid var(--success); }
+        .name-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); background: #eef2ff; padding: 2px 8px; border-radius: 6px; }
+
+        /* Overlay */
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 1000;
         }
-
-        .btn-row { display: flex; gap: 8px; margin-top: 15px; }
-        .btn-sm { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.8rem; }
-        
-        .btn-success { background: var(--success); }
-        .btn-info { background: var(--warning); }
-        .btn-danger-sm { background: #fef2f2; color: var(--danger); border: 1px solid #fee2e2; }
-
-        #tipOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:1000; backdrop-filter: blur(4px); }
-        #tipBox { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:40px; border-radius:24px; max-width:400px; width:90%; text-align: center; }
+        .modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 35px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -107,56 +94,49 @@
 <div class="container">
     <div class="header">
         <h1>Family CleanSync</h1>
-        <p>Real-time Chore Management</p>
+        <div class="progress-container"><div id="progressBar"></div></div>
     </div>
 
-    <div class="controls-wrapper">
+    <div class="glass-panel">
         <div class="controls">
-            <div class="field">
-                <label>Cleaning Job</label>
-                <select id="jobSelect" onchange="toggleCustomFields()">
-                    <option value="Vacuuming">Vacuuming</option>
-                    <option value="Mopping">Mopping</option>
-                    <option value="Windows">Window Cleaning</option>
-                    <option value="Dusting">Dusting</option>
-                    <option value="Laundry">Laundry</option>
-                    <option value="CUSTOM">-- Custom Job --</option>
-                </select>
-                <input type="text" id="customJobName" placeholder="Name..." style="display:none; margin-top:5px;">
-                <input type="text" id="customJobTip" placeholder="Tip..." style="display:none; margin-top:5px;">
-            </div>
-            <div class="field">
-                <label>Assigned To</label>
-                <select id="nameSelect">
-                    <option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>Day of Week</label>
-                <select id="daySelect">
-                    <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
-                    <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
-                </select>
-            </div>
-            <button onclick="addTask()">Assign Task</button>
+            <select id="jobSelect">
+                <option value="Vacuuming">Vacuuming</option>
+                <option value="Dishes">Dishes</option>
+                <option value="Mopping">Mopping</option>
+                <option value="Windows">Windows</option>
+                <option value="Dusting">Dusting</option>
+            </select>
+            <select id="nameSelect"><option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option></select>
+            <select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+            <button onclick="addTask()">Assign</button>
         </div>
     </div>
 
-    <div class="filter-section">
-        <button class="filter-btn active" onclick="setFilter('All', this)">All Tasks</button>
-        <button class="filter-btn" onclick="setFilter('Hayden', this)">Hayden</button>
-        <button class="filter-btn" onclick="setFilter('Jordan', this)">Jordan</button>
-        <button class="filter-btn" onclick="setFilter('Mum', this)">Mum</button>
-        <button class="filter-btn" onclick="setFilter('Dad', this)">Dad</button>
+    <div class="filters" id="filterContainer">
+        <div class="filter-chip active" onclick="setFilter('All', this)">All</div>
+        <div class="filter-chip" onclick="setFilter('Hayden', this)">Hayden</div>
+        <div class="filter-chip" onclick="setFilter('Jordan', this)">Jordan</div>
+        <div class="filter-chip" onclick="setFilter('Mum', this)">Mum</div>
+        <div class="filter-chip" onclick="setFilter('Dad', this)">Dad</div>
     </div>
 
     <div id="calendar" class="calendar"></div>
-    <center><button style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:40px;" class="btn-sm" onclick="resetWeek()">Reset Entire Week</button></center>
+
+    <center>
+        <button style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:40px; padding:8px 20px;" onclick="resetWeek()">Reset Week</button>
+    </center>
 </div>
 
-<div id="tipOverlay" onclick="this.style.display='none'"><div id="tipBox"><h2 id="tipTitle" style="color:var(--primary)"></h2><p id="tipText" style="line-height:1.6; color:#475569;"></p></div></div>
+<div id="tipOverlay" class="overlay" onclick="closeTip()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h2 id="tipTitle" style="color:var(--primary)"></h2>
+        <p id="tipText" style="line-height:1.6; color:#475569;"></p>
+        <button onclick="closeTip()" style="width:100%">Got it!</button>
+    </div>
+</div>
 
 <script>
+    // Paste your config here
     const firebaseConfig = {
       apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
       authDomain: "family-clean-d428e.firebaseapp.com",
@@ -167,20 +147,20 @@
       appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4a"
     };
 
-    const ADMIN_PIN = "1234";
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const tasksRef = db.ref('tasks');
 
     let tasks = [];
     let currentFilter = 'All';
+    const ADMIN_PIN = "1234";
 
     const jobData = {
-        "Vacuuming": "Edges first, then the whole floor.",
-        "Mopping": "Sweep first, use hot soapy water.",
-        "Windows": "Vinegar/water mix, use microfiber cloth.",
-        "Dusting": "Work top to bottom. Don't forget ceiling fans.",
-        "Laundry": "Check pockets! Separate by color."
+        "Vacuuming": "Sweep the edges first! Then vacuum toward the door.",
+        "Dishes": "Scrape food into the bin. Use hot soapy water.",
+        "Mopping": "Don't leave the floor too wet. Use a figure-8 motion.",
+        "Windows": "Use a microfiber cloth for a streak-free shine.",
+        "Dusting": "Work from top to bottom so dust doesn't fall on clean areas."
     };
 
     function init() {
@@ -188,59 +168,48 @@
             const val = snap.val();
             tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
             render();
+            updateProgress();
         });
     }
 
-    function toggleCustomFields() {
-        const isCustom = document.getElementById('jobSelect').value === "CUSTOM";
-        document.getElementById('customJobName').style.display = isCustom ? "block" : "none";
-        document.getElementById('customJobTip').style.display = isCustom ? "block" : "none";
-    }
-
-    function setFilter(name, btn) {
+    function setFilter(name, el) {
         currentFilter = name;
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
         render();
     }
 
+    function updateProgress() {
+        if (tasks.length === 0) { document.getElementById('progressBar').style.width = '0%'; return; }
+        const completed = tasks.filter(t => t.completed).length;
+        const percent = (completed / tasks.length) * 100;
+        document.getElementById('progressBar').style.width = percent + '%';
+    }
+
     function addTask() {
-        const selValue = document.getElementById('jobSelect').value;
-        let job = selValue === "CUSTOM" ? document.getElementById('customJobName').value : selValue;
-        let tip = selValue === "CUSTOM" ? document.getElementById('customJobTip').value : jobData[selValue];
-
-        if(!job) return alert("Enter a job name!");
-
-        tasksRef.push({
-            job: job,
-            tip: tip || "Keep it clean!",
-            person: document.getElementById('nameSelect').value,
-            day: document.getElementById('daySelect').value,
-            completed: false
-        });
+        const job = document.getElementById('jobSelect').value;
+        const person = document.getElementById('nameSelect').value;
+        const day = document.getElementById('daySelect').value;
+        tasksRef.push({ job, person, day, completed: false });
     }
 
     function render() {
         const cal = document.getElementById('calendar');
         cal.innerHTML = '';
-        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-        days.forEach(day => {
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
             let dayTasks = tasks.filter(t => t.day === day);
-            if(currentFilter !== 'All') {
-                dayTasks = dayTasks.filter(t => t.person === currentFilter);
-            }
-
-            let html = `<div class="day-column"><h3 class="day-header">${day}</h3>`;
+            if(currentFilter !== 'All') dayTasks = dayTasks.filter(t => t.person === currentFilter);
+            
+            let html = `<div class="day-card"><div class="day-header">${day}</div>`;
             dayTasks.forEach(t => {
                 html += `
-                <div class="task-card ${t.completed ? 'completed' : ''}">
-                    <span class="name-badge">${t.person}</span>
-                    <div style="font-weight:700; margin-bottom:5px;">${t.job}</div>
-                    <div class="btn-row">
-                        <button class="btn-sm btn-success" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
-                        <button class="btn-sm btn-info" onclick="openTip('${t.id}')">💡</button>
-                        <button class="btn-sm btn-danger-sm" onclick="removeTask('${t.id}')">🗑</button>
+                <div class="task-item ${t.completed ? 'completed' : ''}">
+                    <span class="name-tag">${t.person}</span>
+                    <div style="font-weight:700; margin-top:5px;">${t.job}</div>
+                    <div style="display:flex; gap:5px; margin-top:10px;">
+                        <button class="btn-sm" style="background:var(--success); flex:1;" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
+                        <button class="btn-sm" style="background:var(--info); background:#fbbf24; flex:1;" onclick="openTip('${t.job}')">💡</button>
+                        <button class="btn-sm" style="background:var(--danger); flex:1;" onclick="removeTask('${t.id}')">🗑</button>
                     </div>
                 </div>`;
             });
@@ -249,19 +218,15 @@
     }
 
     function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
+    function removeTask(id) { if(prompt("Admin Pin:") === ADMIN_PIN) db.ref('tasks/' + id).remove(); }
+    function resetWeek() { if(prompt("Admin Pin:") === ADMIN_PIN) tasksRef.remove(); }
     
-    function checkAdmin() { return prompt("Enter Admin PIN:") === ADMIN_PIN; }
-
-    function removeTask(id) { if(checkAdmin()) db.ref('tasks/' + id).remove(); }
-    
-    function resetWeek() { if(checkAdmin()) tasksRef.remove(); }
-
-    function openTip(id) {
-        const t = tasks.find(x => x.id === id);
-        document.getElementById('tipTitle').innerText = t.job;
-        document.getElementById('tipText').innerText = t.tip;
+    function openTip(job) {
+        document.getElementById('tipTitle').innerText = job;
+        document.getElementById('tipText').innerText = jobData[job] || "No extra tips for this one!";
         document.getElementById('tipOverlay').style.display = 'block';
     }
+    function closeTip() { document.getElementById('tipOverlay').style.display = 'none'; }
 
     init();
 </script>
