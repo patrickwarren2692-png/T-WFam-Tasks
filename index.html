@@ -96,7 +96,7 @@
         Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
                 // FIXED: Using ./ ensures the phone finds the worker file
-                navigator.serviceWorker.register('./firebase-messaging-sw.js')
+                navigator.serviceWorker.register('firebase-messaging-sw.js')
                 .then((registration) => {
                     messaging.getToken({ 
                         serviceWorkerRegistration: registration,
