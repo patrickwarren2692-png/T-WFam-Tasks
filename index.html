@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family CleanSync | Advanced Stats</title>
+    <title>Family CleanSync | Ultra</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
@@ -25,14 +25,18 @@
 
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* Advanced Progress Section */
+        /* Progress Panel */
         .stats-panel { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 24px; margin-bottom: 30px; border: 1px solid rgba(255,255,255,0.1); }
         .progress-label { display: flex; justify-content: space-between; font-weight: 800; font-size: 0.9rem; margin-bottom: 10px; }
         .progress-container { width: 100%; background: rgba(255,255,255,0.1); border-radius: 20px; height: 14px; overflow: hidden; }
-        #progressBar { width: 0%; height: 100%; background: var(--success); transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 15px var(--success); }
-        
+        #progressBar { width: 0%; height: 100%; background: var(--success); transition: width 0.6s ease; box-shadow: 0 0 15px var(--success); }
         .day-stats { display: flex; justify-content: space-between; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
         .day-stat-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; min-width: 60px; text-align: center; }
+
+        /* Filter Chips */
+        .filters { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+        .filter-chip { padding: 8px 16px; border-radius: 20px; background: white; color: #1e293b; cursor: pointer; border: 1px solid #cbd5e1; font-size: 0.85rem; transition: 0.3s; }
+        .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
 
         .glass-panel {
             background: var(--glass); backdrop-filter: blur(15px);
@@ -41,13 +45,13 @@
         }
 
         .controls { display: grid; grid-template-columns: 1fr; gap: 20px; }
-        .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: end; }
+        .input-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; align-items: end; }
 
         .day-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .day-chip { padding: 8px 15px; border-radius: 12px; background: white; border: 1px solid #cbd5e1; cursor: pointer; font-size: 0.85rem; transition: 0.2s; font-weight: 600; }
         .day-chip.selected { background: var(--primary); color: white; border-color: var(--primary); }
 
-        select, button { padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+        select, input, button { padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
         button { background: var(--primary); color: white; border: none; font-weight: 700; cursor: pointer; }
 
         .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
@@ -55,7 +59,7 @@
         .day-header { font-weight: 900; color: #fff; margin-bottom: 20px; text-align: center; font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
 
         .task-item { background: white; color: #1e293b; padding: 15px; border-radius: 18px; margin-bottom: 15px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
-        .task-item.completed { opacity: 0.5; filter: grayscale(1); }
+        .task-item.completed { opacity: 0.5; filter: grayscale(1); border-left: 5px solid var(--success); }
         
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(10px); }
         .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: #1e293b; padding: 35px; border-radius: 30px; width: 90%; max-width: 400px; text-align: center; }
@@ -66,18 +70,19 @@
 <div class="container">
     <div class="header">
         <h1 style="font-size: 2.2rem; margin: 0; letter-spacing: -1px; text-align: center;">Family CleanSync</h1>
-        
         <div class="stats-panel">
-            <div class="progress-label">
-                <span>Weekly Completion</span>
-                <span id="percentLabel">0%</span>
-            </div>
-            <div class="progress-container">
-                <div id="progressBar"></div>
-            </div>
-            <div class="day-stats" id="dayStatsRow">
-                </div>
+            <div class="progress-label"><span>Weekly Progress</span><span id="percentLabel">0%</span></div>
+            <div class="progress-container"><div id="progressBar"></div></div>
+            <div class="day-stats" id="dayStatsRow"></div>
         </div>
+    </div>
+
+    <div class="filters">
+        <div class="filter-chip active" onclick="setFilter('All', this)">All</div>
+        <div class="filter-chip" onclick="setFilter('Hayden', this)">Hayden</div>
+        <div class="filter-chip" onclick="setFilter('Jordan', this)">Jordan</div>
+        <div class="filter-chip" onclick="setFilter('Mum', this)">Mum</div>
+        <div class="filter-chip" onclick="setFilter('Dad', this)">Dad</div>
     </div>
 
     <div class="glass-panel">
@@ -85,7 +90,14 @@
             <div class="input-row">
                 <div style="display:flex; flex-direction:column; gap:5px;">
                     <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Chore</label>
-                    <select id="jobSelect"></select>
+                    <select id="jobSelect" onchange="toggleCustomFields()">
+                        <option value="Vacuuming">Vacuuming</option>
+                        <option value="Dishes">Dishes</option>
+                        <option value="Mopping">Mopping</option>
+                        <option value="Windows">Windows</option>
+                        <option value="Dusting">Dusting</option>
+                        <option value="CUSTOM">-- Custom Job --</option>
+                    </select>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:5px;">
                     <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Person</label>
@@ -98,8 +110,13 @@
                 <button onclick="addTask()">Assign Task</button>
             </div>
             
+            <div id="customInputs" style="display:none; grid-template-columns: 1fr 1fr; gap:10px;">
+                <input type="text" id="customJobName" placeholder="New Chore Name...">
+                <input type="text" id="customJobTip" placeholder="Quick Tip...">
+            </div>
+
             <div>
-                <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Days</label>
+                <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Select Days</label>
                 <div class="day-selector">
                     <div class="day-chip" onclick="toggleDay(this, 'Monday')">Mon</div>
                     <div class="day-chip" onclick="toggleDay(this, 'Tuesday')">Tue</div>
@@ -115,9 +132,7 @@
 
     <div id="calendar" class="calendar"></div>
 
-    <center>
-        <button style="background:none; color:white; border:1px solid white; margin:40px 0; padding:10px 30px; border-radius:50px;" onclick="resetWeek()">🔄 Smart Reset Week</button>
-    </center>
+    <center><button style="background:none; color:white; border:1px solid white; margin:40px 0; padding:10px 30px; border-radius:50px;" onclick="resetWeek()">🔄 Smart Reset Week</button></center>
 </div>
 
 <div id="tipOverlay" class="overlay" onclick="closeTip()">
@@ -145,7 +160,7 @@
 
     let tasks = [];
     let selectedDays = [];
-    const daysArr = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    let currentFilter = 'All';
     const ADMIN_PIN = "1234";
 
     const jobData = {
@@ -157,9 +172,6 @@
     };
 
     function init() {
-        const jobSel = document.getElementById('jobSelect');
-        Object.keys(jobData).forEach(j => jobSel.innerHTML += `<option>${j}</option>`);
-        
         tasksRef.on('value', (snap) => {
             const val = snap.val();
             tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
@@ -168,57 +180,64 @@
         });
     }
 
+    function toggleCustomFields() {
+        const isCustom = document.getElementById('jobSelect').value === "CUSTOM";
+        document.getElementById('customInputs').style.display = isCustom ? "grid" : "none";
+    }
+
     function toggleDay(el, day) {
         el.classList.toggle('selected');
         if(selectedDays.includes(day)) selectedDays = selectedDays.filter(d => d !== day);
         else selectedDays.push(day);
     }
 
+    function setFilter(name, btn) {
+        currentFilter = name;
+        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+    }
+
     function updateStats() {
         const total = tasks.length;
         const completed = tasks.filter(t => t.completed).length;
         const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-        
         document.getElementById('progressBar').style.width = percent + '%';
         document.getElementById('percentLabel').innerText = percent + '%';
-
-        // Day Breakdown
         const statsRow = document.getElementById('dayStatsRow');
         statsRow.innerHTML = '';
-        daysArr.forEach(day => {
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
             const dTasks = tasks.filter(t => t.day === day);
-            const dDone = dTasks.filter(t => t.completed).length;
-            const dTotal = dTasks.length;
-            
-            if(dTotal > 0) {
-                statsRow.innerHTML += `
-                    <div class="day-stat-pill" style="border-bottom: 3px solid ${dDone === dTotal ? 'var(--success)' : 'rgba(255,255,255,0.2)'}">
-                        ${day.substring(0,3)}: ${dDone}/${dTotal}
-                    </div>`;
+            if(dTasks.length > 0) {
+                const dDone = dTasks.filter(t => t.completed).length;
+                statsRow.innerHTML += `<div class="day-stat-pill" style="border-bottom: 3px solid ${dDone === dTasks.length ? 'var(--success)' : 'rgba(255,255,255,0.2)'}">${day.substring(0,3)}: ${dDone}/${dTasks.length}</div>`;
             }
         });
     }
 
     function addTask() {
-        const job = document.getElementById('jobSelect').value;
+        const selVal = document.getElementById('jobSelect').value;
         const person = document.getElementById('nameSelect').value;
         const isRecurring = document.getElementById('recurringToggle').checked;
-        if(selectedDays.length === 0) return alert("Select at least one day!");
+        let job = selVal === "CUSTOM" ? document.getElementById('customJobName').value : selVal;
+        let tip = selVal === "CUSTOM" ? document.getElementById('customJobTip').value : jobData[selVal];
 
-        selectedDays.forEach(day => {
-            tasksRef.push({ job, person, day, completed: false, recurring: isRecurring });
-        });
-
+        if(!job || selectedDays.length === 0) return alert("Select job and at least one day!");
+        selectedDays.forEach(day => tasksRef.push({ job, tip, person, day, completed: false, recurring: isRecurring }));
+        
         selectedDays = [];
         document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('selected'));
         document.getElementById('recurringToggle').checked = false;
+        document.getElementById('customJobName').value = "";
+        document.getElementById('customJobTip').value = "";
     }
 
     function render() {
         const cal = document.getElementById('calendar');
         cal.innerHTML = '';
-        daysArr.forEach(day => {
+        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
             let dayTasks = tasks.filter(t => t.day === day);
+            if(currentFilter !== 'All') dayTasks = dayTasks.filter(t => t.person === currentFilter);
             let html = `<div class="day-card"><div class="day-header">${day}</div>`;
             dayTasks.forEach(t => {
                 html += `
@@ -226,9 +245,9 @@
                     <div style="font-weight:800; font-size:0.7rem; color:var(--primary)">${t.person} ${t.recurring ? '🔄' : ''}</div>
                     <div style="font-weight:700; margin:5px 0;">${t.job}</div>
                     <div style="display:flex; gap:5px;">
-                        <button style="background:var(--success); flex:1; padding:5px; border-radius:8px; border:none; color:white;" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
-                        <button style="background:#fbbf24; flex:1; padding:5px; border-radius:8px; border:none; color:white;" onclick="openTip('${t.job}')">💡</button>
-                        <button style="background:var(--danger); flex:1; padding:5px; border-radius:8px; border:none; color:white;" onclick="removeTask('${t.id}')">🗑</button>
+                        <button style="background:var(--success); flex:1; padding:5px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
+                        <button style="background:#fbbf24; flex:1; padding:5px; border-radius:8px;" onclick="openTip('${t.job}', '${t.id}')">💡</button>
+                        <button style="background:var(--danger); flex:1; padding:5px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
                     </div>
                 </div>`;
             });
@@ -238,23 +257,16 @@
 
     function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
     function removeTask(id) { if(prompt("Pin:") === ADMIN_PIN) db.ref('tasks/' + id).remove(); }
-    
     function resetWeek() { 
-        if(prompt("Pin:") === ADMIN_PIN) {
-            tasks.forEach(t => {
-                if(t.recurring) db.ref('tasks/' + t.id).update({ completed: false });
-                else db.ref('tasks/' + t.id).remove();
-            });
-        }
+        if(prompt("Pin:") === ADMIN_PIN) tasks.forEach(t => t.recurring ? db.ref('tasks/' + t.id).update({ completed: false }) : db.ref('tasks/' + t.id).remove());
     }
-
-    function openTip(job) {
+    function openTip(job, id) {
+        const t = tasks.find(x => x.id === id);
         document.getElementById('tipTitle').innerText = job;
-        document.getElementById('tipText').innerText = jobData[job];
+        document.getElementById('tipText').innerText = t.tip || "No tips!";
         document.getElementById('tipOverlay').style.display = 'block';
     }
     function closeTip() { document.getElementById('tipOverlay').style.display = 'none'; }
-
     init();
 </script>
 </body>
