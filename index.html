@@ -185,18 +185,30 @@
         });
     }
 
-    function requestNotificationPermission() {
+        function requestNotificationPermission() {
         Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
-                messaging.getToken({ vapidKey: 'BCN2BP-5hhrCwS8O7JyJ-tdkUb3HWgqczNYgWHtJcMfX7L7K6jft3fLQN_B7M1DX4-QqIg_gT7CbAAYO12RWGfk' })
-                .then((token) => {
-                    if (token) {
-                        db.ref('tokens/' + document.getElementById('nameSelect').value).set(token);
-                        alert("Notifications enabled for " + document.getElementById('nameSelect').value);
-                    }
+                // This registers the background worker specifically for your GitHub URL
+                navigator.serviceWorker.register('/T-WFam-Tasks/firebase-messaging-sw.js')
+                .then((registration) => {
+                    messaging.getToken({ 
+                        serviceWorkerRegistration: registration,
+                        vapidKey: 'BCN2BP-5hhrCwS8O7JyJ-tdkUb3HWgqczNYgWHtJcMfX7L7K6jft3fLQN_B7M1DX4-QqIg_gT7CbAAYO12RWGfk' 
+                    })
+                    .then((token) => {
+                        if (token) {
+                            const name = document.getElementById('nameSelect').value;
+                            // This creates the folder in your Realtime Database
+                            db.ref('tokens/' + name).set(token);
+                            alert("Success! Notifications enabled for " + name);
+                        }
+                    })
+                    .catch((err) => {
+                        alert("Token Error: " + err.message);
+                    });
                 });
             } else {
-                alert("Permission denied. Check browser settings.");
+                alert("Permission denied. Check Chrome settings.");
             }
         });
     }
