@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family CleanSync | Visual Pro</title>
+    <title>Family CleanSync | Recurring Jobs</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
         :root {
-            --primary: #6366f1;
-            --success: #10b981;
-            --danger: #ef4444;
-            --bg: #f1f5f9;
-            --glass: rgba(255, 255, 255, 0.8);
+            --primary: #6366f1; --success: #10b981; --danger: #ef4444;
+            --bg: #f1f5f9; --glass: rgba(255, 255, 255, 0.8);
         }
 
         body { 
@@ -22,71 +19,47 @@
         }
 
         .container { max-width: 1200px; margin: 0 auto; }
-        
-        /* Header & Progress */
         .header { text-align: center; margin-bottom: 30px; }
+        
         .progress-container {
             width: 100%; background: #e2e8f0; border-radius: 10px; height: 12px; margin: 20px 0; overflow: hidden;
         }
-        #progressBar { 
-            width: 0%; height: 100%; background: var(--success); 
-            transition: width 0.5s ease-in-out; 
-        }
+        #progressBar { width: 0%; height: 100%; background: var(--success); transition: width 0.5s ease; }
 
-        /* Controls Panel */
         .glass-panel {
             background: var(--glass); backdrop-filter: blur(10px);
             padding: 25px; border-radius: 20px; border: 1px solid white;
             box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 30px;
         }
 
-        .controls { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;
-        }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: center; }
+        
+        /* Recurring Toggle Styling */
+        .toggle-group { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #475569; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-        select, input, button { 
-            padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 1rem;
-        }
-
-        button { 
-            background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-        }
-        button:hover { background: #4f46e5; transform: translateY(-2px); }
-
-        /* Filters */
+        select, button { padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
+        button { background: var(--primary); color: white; border: none; font-weight: 600; cursor: pointer; }
+        
         .filters { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; }
-        .filter-chip {
-            padding: 8px 16px; border-radius: 20px; background: white; border: 1px solid #cbd5e1;
-            cursor: pointer; font-size: 0.9rem; transition: 0.3s;
-        }
+        .filter-chip { padding: 8px 16px; border-radius: 20px; background: white; cursor: pointer; border: 1px solid #cbd5e1; font-size: 0.85rem; }
         .filter-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
 
-        /* Calendar */
         .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
-        .day-card { 
-            background: var(--glass); padding: 20px; border-radius: 20px; 
-            border: 1px solid white; min-height: 200px;
-        }
-        .day-header { font-weight: 800; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        .day-card { background: var(--glass); padding: 20px; border-radius: 20px; border: 1px solid white; }
+        .day-header { font-weight: 800; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; }
 
-        /* Tasks */
-        .task-item {
-            background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); transition: 0.3s;
-        }
+        .task-item { background: white; padding: 15px; border-radius: 15px; margin-bottom: 12px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
         .task-item.completed { opacity: 0.6; border-left: 5px solid var(--success); }
-        .name-tag { font-size: 0.75rem; font-weight: 700; color: var(--primary); background: #eef2ff; padding: 2px 8px; border-radius: 6px; }
-
-        /* Overlay */
-        .overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 1000;
-        }
-        .modal {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 35px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center;
-        }
+        .recurring-badge { font-size: 0.65rem; background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+        
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 1000; }
+        .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 35px; border-radius: 24px; width: 90%; max-width: 400px; text-align: center; }
     </style>
 </head>
 <body>
@@ -108,11 +81,20 @@
             </select>
             <select id="nameSelect"><option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option></select>
             <select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+            
+            <div class="toggle-group">
+                <span>Recurring?</span>
+                <label class="switch">
+                    <input type="checkbox" id="recurringToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
             <button onclick="addTask()">Assign</button>
         </div>
     </div>
 
-    <div class="filters" id="filterContainer">
+    <div class="filters">
         <div class="filter-chip active" onclick="setFilter('All', this)">All</div>
         <div class="filter-chip" onclick="setFilter('Hayden', this)">Hayden</div>
         <div class="filter-chip" onclick="setFilter('Jordan', this)">Jordan</div>
@@ -123,7 +105,8 @@
     <div id="calendar" class="calendar"></div>
 
     <center>
-        <button style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:40px; padding:8px 20px;" onclick="resetWeek()">Reset Week</button>
+        <button style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:40px; padding:8px 20px;" onclick="resetWeek()">Smart Reset Week</button>
+        <p style="font-size: 0.75rem; color: #64748b; margin-top: 5px;">(Recurring jobs stay, others are deleted)</p>
     </center>
 </div>
 
@@ -131,12 +114,11 @@
     <div class="modal" onclick="event.stopPropagation()">
         <h2 id="tipTitle" style="color:var(--primary)"></h2>
         <p id="tipText" style="line-height:1.6; color:#475569;"></p>
-        <button onclick="closeTip()" style="width:100%">Got it!</button>
+        <button onclick="closeTip()" style="width:100%; margin-top: 15px;">Close</button>
     </div>
 </div>
 
 <script>
-    // Paste your config here
     const firebaseConfig = {
       apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
       authDomain: "family-clean-d428e.firebaseapp.com",
@@ -144,91 +126,4 @@
       projectId: "family-clean-d428e",
       storageBucket: "family-clean-d428e.firebasestorage.app",
       messagingSenderId: "1067832584063",
-      appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4a"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const tasksRef = db.ref('tasks');
-
-    let tasks = [];
-    let currentFilter = 'All';
-    const ADMIN_PIN = "1234";
-
-    const jobData = {
-        "Vacuuming": "Sweep the edges first! Then vacuum toward the door.",
-        "Dishes": "Scrape food into the bin. Use hot soapy water.",
-        "Mopping": "Don't leave the floor too wet. Use a figure-8 motion.",
-        "Windows": "Use a microfiber cloth for a streak-free shine.",
-        "Dusting": "Work from top to bottom so dust doesn't fall on clean areas."
-    };
-
-    function init() {
-        tasksRef.on('value', (snap) => {
-            const val = snap.val();
-            tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
-            render();
-            updateProgress();
-        });
-    }
-
-    function setFilter(name, el) {
-        currentFilter = name;
-        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-        el.classList.add('active');
-        render();
-    }
-
-    function updateProgress() {
-        if (tasks.length === 0) { document.getElementById('progressBar').style.width = '0%'; return; }
-        const completed = tasks.filter(t => t.completed).length;
-        const percent = (completed / tasks.length) * 100;
-        document.getElementById('progressBar').style.width = percent + '%';
-    }
-
-    function addTask() {
-        const job = document.getElementById('jobSelect').value;
-        const person = document.getElementById('nameSelect').value;
-        const day = document.getElementById('daySelect').value;
-        tasksRef.push({ job, person, day, completed: false });
-    }
-
-    function render() {
-        const cal = document.getElementById('calendar');
-        cal.innerHTML = '';
-        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
-            let dayTasks = tasks.filter(t => t.day === day);
-            if(currentFilter !== 'All') dayTasks = dayTasks.filter(t => t.person === currentFilter);
-            
-            let html = `<div class="day-card"><div class="day-header">${day}</div>`;
-            dayTasks.forEach(t => {
-                html += `
-                <div class="task-item ${t.completed ? 'completed' : ''}">
-                    <span class="name-tag">${t.person}</span>
-                    <div style="font-weight:700; margin-top:5px;">${t.job}</div>
-                    <div style="display:flex; gap:5px; margin-top:10px;">
-                        <button class="btn-sm" style="background:var(--success); flex:1;" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
-                        <button class="btn-sm" style="background:var(--info); background:#fbbf24; flex:1;" onclick="openTip('${t.job}')">💡</button>
-                        <button class="btn-sm" style="background:var(--danger); flex:1;" onclick="removeTask('${t.id}')">🗑</button>
-                    </div>
-                </div>`;
-            });
-            cal.innerHTML += html + `</div>`;
-        });
-    }
-
-    function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
-    function removeTask(id) { if(prompt("Admin Pin:") === ADMIN_PIN) db.ref('tasks/' + id).remove(); }
-    function resetWeek() { if(prompt("Admin Pin:") === ADMIN_PIN) tasksRef.remove(); }
-    
-    function openTip(job) {
-        document.getElementById('tipTitle').innerText = job;
-        document.getElementById('tipText').innerText = jobData[job] || "No extra tips for this one!";
-        document.getElementById('tipOverlay').style.display = 'block';
-    }
-    function closeTip() { document.getElementById('tipOverlay').style.display = 'none'; }
-
-    init();
-</script>
-</body>
-</html>
+      appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4
