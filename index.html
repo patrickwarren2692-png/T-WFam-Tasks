@@ -10,7 +10,7 @@
         :root { --primary: #2c3e50; --accent: #3498db; --success: #27ae60; --danger: #e74c3c; --info: #f39c12; --bg: #ecf0f1; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); padding: 15px; margin: 0; }
         .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; padding: 10px; color: var(--primary); }
+        .header { text-align: center; color: var(--primary); }
         .controls { 
             background: white; padding: 20px; border-radius: 12px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 25px;
@@ -18,8 +18,9 @@
         }
         .field { display: flex; flex-direction: column; gap: 5px; }
         label { font-weight: bold; font-size: 0.75rem; text-transform: uppercase; color: #7f8c8d; }
-        select, button { padding: 10px; border-radius: 6px; border: 1px solid #bdc3c7; font-size: 1rem; }
+        select, input, button { padding: 10px; border-radius: 6px; border: 1px solid #bdc3c7; font-size: 1rem; }
         button { background: var(--accent); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .btn-danger { background: var(--danger); margin-top: 20px; width: 100%; max-width: 300px; }
         .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; }
         .day-column { background: #fff; padding: 12px; border-radius: 10px; border: 1px solid #dcdde1; min-height: 150px; }
         .day-header { border-bottom: 2px solid var(--accent); text-align: center; margin-top: 0; }
@@ -37,18 +38,25 @@
 <div class="container">
     <div class="header"><h1>Family CleanSync ☁️</h1></div>
     <div class="controls">
-        <div class="field"><label>Job</label><select id="jobSelect"></select></div>
-        <div class="field"><label>Who</label><select id="nameSelect"><option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option></select></div>
-        <div class="field"><label>Day</label><select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+        <div class="field">
+            <label>1. Job</label>
+            <select id="jobSelect" onchange="toggleCustomFields()">
+                <option value="CUSTOM">-- Add Custom Job --</option>
+            </select>
+            <input type="text" id="customJobName" placeholder="Job Name..." style="margin-top:5px;">
+            <input type="text" id="customJobTip" placeholder="How to do it..." style="margin-top:5px;">
+        </div>
+        <div class="field"><label>2. Who</label><select id="nameSelect"><option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option></select></div>
+        <div class="field"><label>3. Day</label><select id="daySelect"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
         <button onclick="addTask()">Assign Task</button>
     </div>
     <div id="calendar" class="calendar"></div>
+    <center><button class="btn-danger" onclick="resetWeek()">⚠️ Reset Entire Week</button></center>
 </div>
 
 <div id="tipOverlay" onclick="this.style.display='none'"><div id="tipBox"><h2 id="tipTitle"></h2><p id="tipText"></p></div></div>
 
 <script>
-    // YOUR UNIQUE FIREBASE CONFIG (FROM SCREENSHOT)
     const firebaseConfig = {
       apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
       authDomain: "family-clean-d428e.firebaseapp.com",
@@ -64,28 +72,22 @@
     const tasksRef = db.ref('tasks');
 
     const jobData = {
-        "Oven Deep Clean": "Apply oven cleaner, let sit for 2 hours. Wipe with heavy-duty sponge.",
-        "Fridge Clean": "Discard expired food. Wipe shelves with water and vanilla essence.",
-        "Dishwasher": "Clear filters, load plates facing center, ensure arms spin freely.",
-        "Vacuuming": "Move small furniture. Use nozzle for edges and baseboards.",
-        "Mopping": "Sweep first. Use damp mop. Change water if it gets brown.",
-        "Windows": "Use 50/50 vinegar/water mix. Clean on cloudy days.",
-        "Dusting": "Work top to bottom. Don't forget ceiling fans.",
-        "Trash/Recycle": "Rinse recyclables. Disinfect bins before replacing liners.",
-        "Shower/Tub": "Let cleaner sit for 10 mins. Scrub grout with a stiff brush.",
-        "Toilet Deep Clean": "Scrub under rim. Disinfect handle and seat thoroughly.",
-        "Lawn Mowing": "Clear debris first. Overlap rows. Wear closed shoes.",
-        "Car Wash": "Wash from roof down. Use separate sponge for wheels.",
-        "Laundry": "Check pockets! Separate by color. Don't overload."
+        "Vacuuming": "Edges first, then the whole floor.",
+        "Mopping": "Sweep first, use hot soapy water.",
+        "Windows": "Vinegar/water mix, use microfiber.",
+        "Dusting": "Work top to bottom.",
+        "Laundry": "Check pockets! Separate by color."
     };
 
     let tasks = [];
 
     function init() {
         const jobSel = document.getElementById('jobSelect');
-        Object.keys(jobData).forEach(j => jobSel.innerHTML += `<option>${j}</option>`);
-        
-        // Listen for cloud updates
+        Object.keys(jobData).forEach(j => {
+            const opt = document.createElement('option');
+            opt.value = j; opt.textContent = j;
+            jobSel.appendChild(opt);
+        });
         tasksRef.on('value', (snap) => {
             const val = snap.val();
             tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
@@ -93,13 +95,39 @@
         });
     }
 
+    function toggleCustomFields() {
+        const isCustom = document.getElementById('jobSelect').value === "CUSTOM";
+        document.getElementById('customJobName').style.display = isCustom ? "block" : "none";
+        document.getElementById('customJobTip').style.display = isCustom ? "block" : "none";
+    }
+
     function addTask() {
+        const selValue = document.getElementById('jobSelect').value;
+        let job, tip;
+
+        if(selValue === "CUSTOM") {
+            job = document.getElementById('customJobName').value;
+            tip = document.getElementById('customJobTip').value;
+        } else {
+            job = selValue;
+            tip = jobData[selValue];
+        }
+
+        if(!job) return alert("Please enter a job name!");
+
         tasksRef.push({
-            job: document.getElementById('jobSelect').value,
+            job: job,
+            tip: tip || "No specific tips for this job.",
             person: document.getElementById('nameSelect').value,
             day: document.getElementById('daySelect').value,
             completed: false
         });
+    }
+
+    function resetWeek() {
+        if(confirm("This will delete ALL tasks for everyone. Continue?")) {
+            tasksRef.remove();
+        }
     }
 
     function render() {
@@ -115,7 +143,7 @@
                     <div>${t.job}</div>
                     <div class="btn-row">
                         <button class="btn-sm" style="background:var(--success)" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
-                        <button class="btn-sm" style="background:var(--info)" onclick="openTip('${t.job}')">💡</button>
+                        <button class="btn-sm" style="background:var(--info)" onclick="openTip('${t.id}')">💡</button>
                         <button class="btn-sm" style="background:var(--danger)" onclick="removeTask('${t.id}')">🗑</button>
                     </div>
                 </div>`;
@@ -124,11 +152,12 @@
         });
     }
 
-    function toggleDone(id, currentStatus) { db.ref('tasks/' + id).update({ completed: !currentStatus }); }
+    function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
     function removeTask(id) { if(confirm("Delete?")) db.ref('tasks/' + id).remove(); }
-    function openTip(job) {
-        document.getElementById('tipTitle').innerText = job;
-        document.getElementById('tipText').innerText = jobData[job];
+    function openTip(id) {
+        const t = tasks.find(x => x.id === id);
+        document.getElementById('tipTitle').innerText = t.job;
+        document.getElementById('tipText').innerText = t.tip;
         document.getElementById('tipOverlay').style.display = 'block';
     }
 
