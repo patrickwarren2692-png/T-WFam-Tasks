@@ -185,26 +185,31 @@
         });
     }
 
-    function requestNotificationPermission() {
+        function requestNotificationPermission() {
         Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
-                // FIXED LINE: Removes the folder name and uses explicit filename
+                // 1. Register the worker
                 navigator.serviceWorker.register('firebase-messaging-sw.js')
                 .then((registration) => {
-                    messaging.getToken({ 
+                    // 2. WAIT until the worker is fully active
+                    return navigator.serviceWorker.ready;
+                })
+                .then((registration) => {
+                    // 3. Now it's safe to ask for the token
+                    return messaging.getToken({ 
                         serviceWorkerRegistration: registration,
                         vapidKey: 'BCN2BP-5hhrCwS8O7JyJ-tdkUb3HWgqczNYgWHtJcMfX7L7K6jft3fLQN_B7M1DX4-QqIg_gT7CbAAYO12RWGfk' 
-                    })
-                    .then((token) => {
-                        if (token) {
-                            const name = document.getElementById('nameSelect').value;
-                            db.ref('tokens/' + name).set(token);
-                            alert("Success! Notifications enabled for " + name);
-                        }
-                    })
-                    .catch((err) => {
-                        alert("Token Error: " + err.message);
                     });
+                })
+                .then((token) => {
+                    if (token) {
+                        const name = document.getElementById('nameSelect').value;
+                        db.ref('tokens/' + name).set(token);
+                        alert("Success! Notifications enabled for " + name);
+                    }
+                })
+                .catch((err) => {
+                    alert("Token Error: " + err.message);
                 });
             } else {
                 alert("Permission denied. Check Chrome settings.");
