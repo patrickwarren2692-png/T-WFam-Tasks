@@ -91,4 +91,179 @@
             background: #eff6ff; color: var(--primary);
         }
 
-        .btn-row { display: flex; gap: 8px; margin-top: 15px;
+        .btn-row { display: flex; gap: 8px; margin-top: 15px; }
+        .btn-sm { flex: 1; padding: 8px; border-radius: 8px; font-size: 0.8rem; }
+        
+        .btn-success { background: var(--success); }
+        .btn-info { background: var(--warning); }
+        .btn-danger-sm { background: #fef2f2; color: var(--danger); border: 1px solid #fee2e2; }
+
+        #tipOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.8); z-index:1000; backdrop-filter: blur(4px); }
+        #tipBox { position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; padding:40px; border-radius:24px; max-width:400px; width:90%; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Family CleanSync</h1>
+        <p>Real-time Chore Management</p>
+    </div>
+
+    <div class="controls-wrapper">
+        <div class="controls">
+            <div class="field">
+                <label>Cleaning Job</label>
+                <select id="jobSelect" onchange="toggleCustomFields()">
+                    <option value="Vacuuming">Vacuuming</option>
+                    <option value="Mopping">Mopping</option>
+                    <option value="Windows">Window Cleaning</option>
+                    <option value="Dusting">Dusting</option>
+                    <option value="Laundry">Laundry</option>
+                    <option value="CUSTOM">-- Custom Job --</option>
+                </select>
+                <input type="text" id="customJobName" placeholder="Name..." style="display:none; margin-top:5px;">
+                <input type="text" id="customJobTip" placeholder="Tip..." style="display:none; margin-top:5px;">
+            </div>
+            <div class="field">
+                <label>Assigned To</label>
+                <select id="nameSelect">
+                    <option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Day of Week</label>
+                <select id="daySelect">
+                    <option>Monday</option><option>Tuesday</option><option>Wednesday</option>
+                    <option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+                </select>
+            </div>
+            <button onclick="addTask()">Assign Task</button>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <button class="filter-btn active" onclick="setFilter('All', this)">All Tasks</button>
+        <button class="filter-btn" onclick="setFilter('Hayden', this)">Hayden</button>
+        <button class="filter-btn" onclick="setFilter('Jordan', this)">Jordan</button>
+        <button class="filter-btn" onclick="setFilter('Mum', this)">Mum</button>
+        <button class="filter-btn" onclick="setFilter('Dad', this)">Dad</button>
+    </div>
+
+    <div id="calendar" class="calendar"></div>
+    <center><button style="background:none; color:var(--danger); border:1px solid var(--danger); margin-top:40px;" class="btn-sm" onclick="resetWeek()">Reset Entire Week</button></center>
+</div>
+
+<div id="tipOverlay" onclick="this.style.display='none'"><div id="tipBox"><h2 id="tipTitle" style="color:var(--primary)"></h2><p id="tipText" style="line-height:1.6; color:#475569;"></p></div></div>
+
+<script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
+      authDomain: "family-clean-d428e.firebaseapp.com",
+      databaseURL: "https://family-clean-d428e-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "family-clean-d428e",
+      storageBucket: "family-clean-d428e.firebasestorage.app",
+      messagingSenderId: "1067832584063",
+      appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4a"
+    };
+
+    const ADMIN_PIN = "1234";
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const tasksRef = db.ref('tasks');
+
+    let tasks = [];
+    let currentFilter = 'All';
+
+    const jobData = {
+        "Vacuuming": "Edges first, then the whole floor.",
+        "Mopping": "Sweep first, use hot soapy water.",
+        "Windows": "Vinegar/water mix, use microfiber cloth.",
+        "Dusting": "Work top to bottom. Don't forget ceiling fans.",
+        "Laundry": "Check pockets! Separate by color."
+    };
+
+    function init() {
+        tasksRef.on('value', (snap) => {
+            const val = snap.val();
+            tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
+            render();
+        });
+    }
+
+    function toggleCustomFields() {
+        const isCustom = document.getElementById('jobSelect').value === "CUSTOM";
+        document.getElementById('customJobName').style.display = isCustom ? "block" : "none";
+        document.getElementById('customJobTip').style.display = isCustom ? "block" : "none";
+    }
+
+    function setFilter(name, btn) {
+        currentFilter = name;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+    }
+
+    function addTask() {
+        const selValue = document.getElementById('jobSelect').value;
+        let job = selValue === "CUSTOM" ? document.getElementById('customJobName').value : selValue;
+        let tip = selValue === "CUSTOM" ? document.getElementById('customJobTip').value : jobData[selValue];
+
+        if(!job) return alert("Enter a job name!");
+
+        tasksRef.push({
+            job: job,
+            tip: tip || "Keep it clean!",
+            person: document.getElementById('nameSelect').value,
+            day: document.getElementById('daySelect').value,
+            completed: false
+        });
+    }
+
+    function render() {
+        const cal = document.getElementById('calendar');
+        cal.innerHTML = '';
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+        days.forEach(day => {
+            let dayTasks = tasks.filter(t => t.day === day);
+            if(currentFilter !== 'All') {
+                dayTasks = dayTasks.filter(t => t.person === currentFilter);
+            }
+
+            let html = `<div class="day-column"><h3 class="day-header">${day}</h3>`;
+            dayTasks.forEach(t => {
+                html += `
+                <div class="task-card ${t.completed ? 'completed' : ''}">
+                    <span class="name-badge">${t.person}</span>
+                    <div style="font-weight:700; margin-bottom:5px;">${t.job}</div>
+                    <div class="btn-row">
+                        <button class="btn-sm btn-success" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
+                        <button class="btn-sm btn-info" onclick="openTip('${t.id}')">💡</button>
+                        <button class="btn-sm btn-danger-sm" onclick="removeTask('${t.id}')">🗑</button>
+                    </div>
+                </div>`;
+            });
+            cal.innerHTML += html + `</div>`;
+        });
+    }
+
+    function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
+    
+    function checkAdmin() { return prompt("Enter Admin PIN:") === ADMIN_PIN; }
+
+    function removeTask(id) { if(checkAdmin()) db.ref('tasks/' + id).remove(); }
+    
+    function resetWeek() { if(checkAdmin()) tasksRef.remove(); }
+
+    function openTip(id) {
+        const t = tasks.find(x => x.id === id);
+        document.getElementById('tipTitle').innerText = t.job;
+        document.getElementById('tipText').innerText = t.tip;
+        document.getElementById('tipOverlay').style.display = 'block';
+    }
+
+    init();
+</script>
+</body>
+</html>
