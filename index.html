@@ -1,9 +1,15 @@
+That is a great way to make the app more organized. I've updated the code to include a Library Manager (so you can delete old chores), a Quick Filter row, and a Layout Switcher that lets you toggle between a Calendar View and a Compact List View.
+The "Family CleanSync Pro Library" Edition
+
+Replace your current index.html on GitHub with this version.
+HTML
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Family CleanSync | Library</title>
+    <title>Family CleanSync | Pro Library</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <style>
@@ -30,12 +36,12 @@
         .progress-label { display: flex; justify-content: space-between; font-weight: 800; font-size: 0.9rem; margin-bottom: 10px; }
         .progress-container { width: 100%; background: rgba(255,255,255,0.1); border-radius: 20px; height: 14px; overflow: hidden; }
         #progressBar { width: 0%; height: 100%; background: var(--success); transition: width 0.6s ease; box-shadow: 0 0 15px var(--success); }
-        .day-stats { display: flex; justify-content: space-between; gap: 5px; margin-top: 15px; flex-wrap: wrap; }
-        .day-stat-pill { background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; min-width: 60px; text-align: center; }
 
-        /* Settings Icon */
-        .settings-trigger { position: absolute; top: 0; right: 0; cursor: pointer; font-size: 1.5rem; transition: 0.3s; z-index: 10; }
-        .settings-trigger:hover { transform: rotate(45deg); }
+        /* Tools Bar */
+        .tools-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chip { padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); cursor: pointer; font-size: 0.8rem; font-weight: 600; color: white; }
+        .chip.active { background: var(--primary); border-color: var(--primary); }
 
         .glass-panel {
             background: var(--glass); backdrop-filter: blur(15px);
@@ -53,7 +59,10 @@
         select, input, button { padding: 12px; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 0.9rem; }
         button { background: var(--primary); color: white; border: none; font-weight: 700; cursor: pointer; }
 
-        .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        /* Layout Switcher Styles */
+        .calendar-view { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .list-view { display: flex; flex-direction: column; gap: 15px; max-width: 600px; margin: 0 auto; }
+        
         .day-card { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); padding: 20px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
         .day-header { font-weight: 900; color: #fff; margin-bottom: 20px; text-align: center; font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; }
 
@@ -62,18 +71,32 @@
         
         .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; backdrop-filter: blur(10px); }
         .modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: #1e293b; padding: 35px; border-radius: 30px; width: 90%; max-width: 500px; }
+        
+        .lib-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #eee; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="settings-trigger" onclick="openSettings()">⚙️</div>
     <div class="header">
         <h1 style="text-align: center; margin: 0 0 20px 0;">Family CleanSync</h1>
         <div class="stats-panel">
             <div class="progress-label"><span>Weekly Completion</span><span id="percentLabel">0%</span></div>
             <div class="progress-container"><div id="progressBar"></div></div>
-            <div id="dayStatsRow" class="day-stats"></div>
+        </div>
+    </div>
+
+    <div class="tools-bar">
+        <div class="filter-group">
+            <div class="chip active" onclick="setFilter('All', this)">All</div>
+            <div class="chip" onclick="setFilter('Hayden', this)">Hayden</div>
+            <div class="chip" onclick="setFilter('Jordan', this)">Jordan</div>
+            <div class="chip" onclick="setFilter('Mum', this)">Mum</div>
+            <div class="chip" onclick="setFilter('Dad', this)">Dad</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <div class="chip" onclick="toggleLayout()">📱 Switch View</div>
+            <div class="chip" onclick="openSettings()">⚙️ Library</div>
         </div>
     </div>
 
@@ -81,11 +104,11 @@
         <div class="controls">
             <div class="input-row">
                 <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Choose Chore</label>
+                    <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Chore</label>
                     <select id="jobSelect"></select>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Person</label>
+                    <label style="font-size:0.7rem; font-weight:800; color:#64748b;">Who</label>
                     <select id="nameSelect"><option>Hayden</option><option>Jordan</option><option>Mum</option><option>Dad</option></select>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
@@ -107,19 +130,19 @@
         </div>
     </div>
 
-    <div id="calendar" class="calendar"></div>
+    <div id="calendar" class="calendar-view"></div>
 </div>
 
 <div id="settingsOverlay" class="overlay">
     <div class="modal">
-        <h2 style="margin-top:0">Manage Chore Library</h2>
+        <h2 style="margin-top:0">Manage Library</h2>
         <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
-            <input type="text" id="libJob" placeholder="Job Name (e.g. Mowing)">
-            <input type="text" id="libTip" placeholder="Pro-Tip (e.g. Empty catcher)">
-            <button onclick="saveToLibrary()">Add to Permanent List</button>
+            <input type="text" id="libJob" placeholder="New Chore Name">
+            <input type="text" id="libTip" placeholder="Quick Tip Description">
+            <button onclick="saveToLibrary()">Add to Dropdown</button>
         </div>
-        <hr>
-        <button onclick="closeSettings()" style="width:100%; background:#64748b;">Close Settings</button>
+        <div id="libList" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #eee; border-radius: 10px;"></div>
+        <button onclick="closeSettings()" style="width:100%; background:#64748b;">Close</button>
         <button onclick="resetWeek()" style="width:100%; margin-top:10px; background:var(--danger);">⚠️ Smart Reset Week</button>
     </div>
 </div>
@@ -151,20 +174,17 @@
     let tasks = [];
     let selectedDays = [];
     let choreLibrary = {};
+    let currentFilter = 'All';
+    let isCalendar = true;
     const ADMIN_PIN = "1234";
 
     function init() {
-        // Sync Library
         libRef.on('value', (snap) => {
-            choreLibrary = snap.val() || {
-                "Vacuuming": "Edges first, then center.",
-                "Dishes": "Hot soapy water!",
-                "Dusting": "Work top to bottom."
-            };
+            choreLibrary = snap.val() || { "Vacuuming": "Edges first.", "Dishes": "Hot water." };
             updateDropdown();
+            renderLibrary();
         });
 
-        // Sync Tasks
         tasksRef.on('value', (snap) => {
             const val = snap.val();
             tasks = val ? Object.keys(val).map(k => ({...val[k], id: k})) : [];
@@ -176,58 +196,75 @@
     function updateDropdown() {
         const sel = document.getElementById('jobSelect');
         sel.innerHTML = '';
+        Object.keys(choreLibrary).forEach(job => sel.innerHTML += `<option value="${job}">${job}</option>`);
+    }
+
+    function renderLibrary() {
+        const list = document.getElementById('libList');
+        list.innerHTML = '';
         Object.keys(choreLibrary).forEach(job => {
-            sel.innerHTML += `<option value="${job}">${job}</option>`;
+            list.innerHTML += `<div class="lib-item"><span>${job}</span><button style="background:none; color:var(--danger); padding:0; border:none;" onclick="deleteFromLib('${job}')">Remove</button></div>`;
         });
     }
 
     function saveToLibrary() {
         const job = document.getElementById('libJob').value;
         const tip = document.getElementById('libTip').value;
-        if(job && tip) {
-            libRef.child(job).set(tip);
-            document.getElementById('libJob').value = '';
-            document.getElementById('libTip').value = '';
-        }
+        if(job && tip) libRef.child(job).set(tip);
+        document.getElementById('libJob').value = ''; document.getElementById('libTip').value = '';
     }
+
+    function deleteFromLib(job) { if(confirm(`Delete ${job} from library?`)) libRef.child(job).remove(); }
 
     function toggleDay(el, day) {
         el.classList.toggle('selected');
-        if(selectedDays.includes(day)) selectedDays = selectedDays.filter(d => d !== day);
-        else selectedDays.push(day);
+        selectedDays.includes(day) ? selectedDays = selectedDays.filter(d => d !== day) : selectedDays.push(day);
+    }
+
+    function setFilter(name, el) {
+        currentFilter = name;
+        document.querySelectorAll('.filter-group .chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        render();
+    }
+
+    function toggleLayout() {
+        isCalendar = !isCalendar;
+        document.getElementById('calendar').className = isCalendar ? 'calendar-view' : 'list-view';
+        render();
     }
 
     function addTask() {
         const job = document.getElementById('jobSelect').value;
         const person = document.getElementById('nameSelect').value;
-        const isRecurring = document.getElementById('recurringToggle').checked;
+        const isRec = document.getElementById('recurringToggle').checked;
         if(selectedDays.length === 0) return alert("Select a day!");
-        
-        selectedDays.forEach(day => {
-            tasksRef.push({ job, tip: choreLibrary[job], person, day, completed: false, recurring: isRecurring });
-        });
-        selectedDays = [];
-        document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('selected'));
+        selectedDays.forEach(day => tasksRef.push({ job, tip: choreLibrary[job], person, day, completed: false, recurring: isRec }));
+        selectedDays = []; document.querySelectorAll('.day-chip').forEach(c => c.classList.remove('selected'));
     }
 
     function updateStats() {
         const total = tasks.length;
         const done = tasks.filter(t => t.completed).length;
-        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
-        document.getElementById('progressBar').style.width = percent + '%';
-        document.getElementById('percentLabel').innerText = percent + '%';
+        const p = total > 0 ? Math.round((done / total) * 100) : 0;
+        document.getElementById('progressBar').style.width = p + '%';
+        document.getElementById('percentLabel').innerText = p + '%';
     }
 
     function render() {
         const cal = document.getElementById('calendar');
         cal.innerHTML = '';
-        ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].forEach(day => {
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        days.forEach(day => {
             let dTasks = tasks.filter(t => t.day === day);
+            if(currentFilter !== 'All') dTasks = dTasks.filter(t => t.person === currentFilter);
+            if(dTasks.length === 0 && !isCalendar) return;
+
             let html = `<div class="day-card"><div class="day-header">${day}</div>`;
             dTasks.forEach(t => {
                 html += `
                 <div class="task-item ${t.completed ? 'completed' : ''}">
-                    <div style="font-weight:800; font-size:0.7rem; color:var(--primary)">${t.person} ${t.recurring ? '🔄' : ''}</div>
+                    <div style="font-weight:800; font-size:0.75rem; color:var(--primary)">${t.person} ${t.recurring ? '🔄' : ''}</div>
                     <div style="font-weight:700; margin:5px 0;">${t.job}</div>
                     <div style="display:flex; gap:5px;">
                         <button style="background:var(--success); flex:1; padding:5px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">✔</button>
@@ -240,20 +277,12 @@
         });
     }
 
-    function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
+    function toggleDone(id, s) { db.ref('tasks/' + id).update({ completed: !s }); }
     function removeTask(id) { if(prompt("Pin:") === ADMIN_PIN) db.ref('tasks/' + id).remove(); }
-    function resetWeek() { 
-        if(prompt("Pin:") === ADMIN_PIN) tasks.forEach(t => t.recurring ? db.ref('tasks/' + t.id).update({ completed: false }) : db.ref('tasks/' + t.id).remove());
-    }
-    
+    function resetWeek() { if(prompt("Pin:") === ADMIN_PIN) tasks.forEach(t => t.recurring ? db.ref('tasks/' + t.id).update({ completed: false }) : db.ref('tasks/' + t.id).remove()); }
     function openSettings() { document.getElementById('settingsOverlay').style.display = 'block'; }
     function closeSettings() { document.getElementById('settingsOverlay').style.display = 'none'; }
-    function openTip(id) {
-        const t = tasks.find(x => x.id === id);
-        document.getElementById('tipTitle').innerText = t.job;
-        document.getElementById('tipText').innerText = t.tip;
-        document.getElementById('tipOverlay').style.display = 'block';
-    }
+    function openTip(id) { const t = tasks.find(x => x.id === id); document.getElementById('tipTitle').innerText = t.job; document.getElementById('tipText').innerText = t.tip; document.getElementById('tipOverlay').style.display = 'block'; }
     function closeTip() { document.getElementById('tipOverlay').style.display = 'none'; }
     init();
 </script>
