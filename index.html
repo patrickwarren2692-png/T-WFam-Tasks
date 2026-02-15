@@ -184,12 +184,11 @@
             updateSmartStats();
         });
     }
-
-        function requestNotificationPermission() {
+function requestNotificationPermission() {
         Notification.requestPermission().then((permission) => {
             if (permission === 'granted') {
                 // This registers the background worker specifically for your GitHub URL
-                navigator.serviceWorker.register('/T-WFam-Tasks/firebase-messaging-sw.js')
+                navigator.serviceWorker.register('./firebase-messaging-sw.js')
                 .then((registration) => {
                     messaging.getToken({ 
                         serviceWorkerRegistration: registration,
