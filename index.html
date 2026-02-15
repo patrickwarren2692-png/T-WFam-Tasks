@@ -57,6 +57,7 @@
 <div id="tipOverlay" onclick="this.style.display='none'"><div id="tipBox"><h2 id="tipTitle"></h2><p id="tipText"></p></div></div>
 
 <script>
+    // YOUR UNIQUE FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
       authDomain: "family-clean-d428e.firebaseapp.com",
@@ -66,6 +67,9 @@
       messagingSenderId: "1067832584063",
       appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4a"
     };
+
+    // --- ADMIN PIN SETTING ---
+    const ADMIN_PIN = "1234"; // You can change this to any 4-digit code!
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -101,6 +105,16 @@
         document.getElementById('customJobTip').style.display = isCustom ? "block" : "none";
     }
 
+    function checkAdmin() {
+        const pin = prompt("Enter Admin PIN to perform this action:");
+        if (pin === ADMIN_PIN) {
+            return true;
+        } else {
+            alert("Incorrect PIN. Action denied.");
+            return false;
+        }
+    }
+
     function addTask() {
         const selValue = document.getElementById('jobSelect').value;
         let job, tip;
@@ -125,8 +139,10 @@
     }
 
     function resetWeek() {
-        if(confirm("This will delete ALL tasks for everyone. Continue?")) {
-            tasksRef.remove();
+        if(checkAdmin()) {
+            if(confirm("This will delete ALL tasks for everyone. Continue?")) {
+                tasksRef.remove();
+            }
         }
     }
 
@@ -153,7 +169,13 @@
     }
 
     function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
-    function removeTask(id) { if(confirm("Delete?")) db.ref('tasks/' + id).remove(); }
+    
+    function removeTask(id) { 
+        if(checkAdmin()) {
+            db.ref('tasks/' + id).remove(); 
+        }
+    }
+
     function openTip(id) {
         const t = tasks.find(x => x.id === id);
         document.getElementById('tipTitle').innerText = t.job;
