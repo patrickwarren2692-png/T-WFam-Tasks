@@ -6,7 +6,7 @@
     <title>T-WFam Tasks</title>
     <style>
         :root { --primary: #6366f1; --success: #22c55e; --danger: #ef4444; --bg: #f8fafc; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 100px; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 120px; }
         .stats-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
         .progress-container { background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
         #progressBar { background: var(--success); height: 100%; width: 0%; transition: width 0.4s ease; }
@@ -15,20 +15,26 @@
         .task-item { background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 8px; }
         .task-item.completed { opacity: 0.6; background: #dcfce7; }
         .task-item.completed div { text-decoration: line-through; }
-        button { border: none; color: white; cursor: pointer; font-weight: bold; }
+        button { border: none; color: white; cursor: pointer; font-weight: bold; -webkit-tap-highlight-color: transparent; }
         .chip-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
         .chip { padding: 8px 15px; background: #e2e8f0; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .chip.active { background: var(--primary); color: white; }
         select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; }
+        #settingsOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; color:white; padding:30px; box-sizing:border-box; }
     </style>
 </head>
 <body>
 
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h1 style="font-size:1.4rem; color:var(--primary); margin:0;">T-WFam Tasks</h1>
+        <button onclick="openSettings()" style="background:#64748b; padding:8px 15px; border-radius:8px; font-size:0.8rem;">⚙ Settings</button>
+    </div>
+
     <div class="stats-card">
-        <h2 id="statsTitle" style="margin:0; font-size:1.2rem;">Family Progress</h2>
+        <h2 id="statsTitle" style="margin:0; font-size:1.1rem;">Family Weekly Progress</h2>
         <div class="progress-container"><div id="progressBar"></div></div>
         <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:bold;">
-            <span>Weekly Completion</span><span id="percentLabel">0%</span>
+            <span id="percentLabel">0%</span><span>Completed</span>
         </div>
     </div>
 
@@ -44,26 +50,35 @@
     </div>
 
     <div class="stats-card">
-        <h3 style="margin-top:0;">Add Task</h3>
+        <h3 style="margin-top:0; font-size:1rem;">Add New Task</h3>
         <select id="jobSelect">
             <option value="Vacuuming">Vacuuming</option>
             <option value="Mopping">Mopping</option>
             <option value="Dishes">Dishes</option>
             <option value="Bathroom">Bathroom</option>
             <option value="Laundry">Laundry</option>
-            <option value="Dusting">Dusting</option>
+            <option value="Rubbish">Rubbish</option>
         </select>
         <select id="nameSelect">
             <option value="Patrick">Patrick</option>
             <option value="Partner">Partner</option>
         </select>
-        <button onclick="addTask()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px;">➕ Add to Selected Day</button>
+        <button onclick="addTask()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px;">➕ Add Task</button>
     </div>
 
     <div id="mainDisplay">Loading tasks...</div>
 
+    <div id="settingsOverlay">
+        <h2>Admin Settings</h2>
+        <hr style="border:0; border-top:1px solid #444; margin-bottom:20px;">
+        <button onclick="requestNotificationPermission()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px; margin-bottom:15px;">🔔 Enable Notifications</button>
+        <button onclick="resetWeek()" style="background:var(--danger); padding:15px; width:100%; border-radius:10px; margin-bottom:30px;">🚨 Reset Entire Week</button>
+        <button onclick="closeSettings()" style="background:#475569; padding:12px; width:100%; border-radius:10px;">Close Menu</button>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 
     <script>
         const firebaseConfig = {
@@ -76,6 +91,7 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+        const messaging = firebase.messaging();
         const tasksRef = db.ref('tasks');
 
         let tasks = [];
@@ -123,12 +139,25 @@
             if (prompt("Admin PIN:") === ADMIN_PIN) db.ref('tasks/' + id).remove();
         }
 
+        function resetWeek() {
+            if (prompt("This will clear ALL tasks. Pin:") === ADMIN_PIN) tasksRef.remove();
+        }
+
+        function requestNotificationPermission() {
+            messaging.requestPermission().then(() => messaging.getToken())
+            .then(token => alert("Notifications Active! Token: " + token.substring(0,8) + "..."))
+            .catch(err => alert("Permission denied or blocked. Check browser settings."));
+        }
+
+        function openSettings() { document.getElementById('settingsOverlay').style.display = 'block'; }
+        function closeSettings() { document.getElementById('settingsOverlay').style.display = 'none'; }
+
         function render() {
             const display = document.getElementById('mainDisplay');
             display.innerHTML = '';
-            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
             
-            days.forEach(day => {
+            daysOrder.forEach(day => {
                 if (dayFilter !== 'All' && dayFilter !== day) return;
                 const dTasks = tasks.filter(t => t.day === day);
                 if (dTasks.length === 0) return;
@@ -138,12 +167,12 @@
                     html += `
                     <div class="task-item ${t.completed ? 'completed' : ''}">
                         <div style="font-weight:800; font-size:0.7rem; color:var(--primary);">${t.person}</div>
-                        <div style="font-weight:700; font-size:0.9rem; margin:5px 0;">${t.job}</div>
-                        <div style="display:flex; gap:8px;">
-                            <button style="background:var(--success); flex:1; padding:8px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">
-                                ${t.completed ? '✅' : 'Complete'}
+                        <div style="font-weight:700; font-size:0.95rem; margin:5px 0;">${t.job}</div>
+                        <div style="display:flex; gap:10px;">
+                            <button style="background:var(--success); flex:1; padding:10px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">
+                                ${t.completed ? '✅ Done' : 'Complete'}
                             </button>
-                            <button style="background:var(--danger); width:45px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
+                            <button style="background:var(--danger); width:50px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
                         </div>
                     </div>`;
                 });
