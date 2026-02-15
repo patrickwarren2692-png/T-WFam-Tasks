@@ -5,36 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>T-WFam Tasks</title>
     <style>
-        :root {
-            --primary: #6366f1;
-            --success: #22c55e;
-            --danger: #ef4444;
-            --bg: #f8fafc;
-        }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        :root { --primary: #6366f1; --success: #22c55e; --danger: #ef4444; --bg: #f8fafc; }
+        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 100px; }
         .stats-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
         .progress-container { background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
         #progressBar { background: var(--success); height: 100%; width: 0%; transition: width 0.4s ease; }
         .day-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--primary); }
         .day-header { font-weight: 800; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .task-item { background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 8px; position: relative; }
+        .task-item { background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 8px; }
         .task-item.completed { opacity: 0.6; background: #dcfce7; }
         .task-item.completed div { text-decoration: line-through; }
-        button { border: none; color: white; cursor: pointer; font-weight: bold; transition: opacity 0.2s; }
-        button:active { opacity: 0.7; }
-        .chip-container { display: flex; gap: 5px; flex-wrap: wrap; margin: 10px 0; }
-        .chip { padding: 5px 12px; background: #e2e8f0; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+        button { border: none; color: white; cursor: pointer; font-weight: bold; }
+        .chip-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chip { padding: 8px 15px; background: #e2e8f0; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
         .chip.active { background: var(--primary); color: white; }
+        select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; }
     </style>
 </head>
 <body>
 
     <div class="stats-card">
-        <h2 id="statsTitle" style="margin:0; font-size:1.2rem;">Family Weekly</h2>
+        <h2 id="statsTitle" style="margin:0; font-size:1.2rem;">Family Progress</h2>
         <div class="progress-container"><div id="progressBar"></div></div>
         <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:bold;">
-            <span>Progress</span><span id="percentLabel">0%</span>
+            <span>Weekly Completion</span><span id="percentLabel">0%</span>
         </div>
+    </div>
+
+    <div class="chip-container" id="daySelector">
+        <div class="chip active" onclick="setDayFilter('All', this)">All</div>
+        <div class="chip" onclick="setDayFilter('Monday', this)">Mon</div>
+        <div class="chip" onclick="setDayFilter('Tuesday', this)">Tue</div>
+        <div class="chip" onclick="setDayFilter('Wednesday', this)">Wed</div>
+        <div class="chip" onclick="setDayFilter('Thursday', this)">Thu</div>
+        <div class="chip" onclick="setDayFilter('Friday', this)">Fri</div>
+        <div class="chip" onclick="setDayFilter('Saturday', this)">Sat</div>
+        <div class="chip" onclick="setDayFilter('Sunday', this)">Sun</div>
+    </div>
+
+    <div class="stats-card">
+        <h3 style="margin-top:0;">Add Task</h3>
+        <select id="jobSelect">
+            <option value="Vacuuming">Vacuuming</option>
+            <option value="Mopping">Mopping</option>
+            <option value="Dishes">Dishes</option>
+            <option value="Bathroom">Bathroom</option>
+            <option value="Laundry">Laundry</option>
+            <option value="Dusting">Dusting</option>
+        </select>
+        <select id="nameSelect">
+            <option value="Patrick">Patrick</option>
+            <option value="Partner">Partner</option>
+        </select>
+        <button onclick="addTask()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px;">➕ Add to Selected Day</button>
     </div>
 
     <div id="mainDisplay">Loading tasks...</div>
@@ -43,7 +66,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        // Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
             databaseURL: "https://family-clean-d428e-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -57,70 +79,71 @@
         const tasksRef = db.ref('tasks');
 
         let tasks = [];
-        let personFilter = 'All';
         let dayFilter = 'All';
         const ADMIN_PIN = "1234";
 
         function init() {
-            // Real-time listener: triggers whenever you OR your partner update data
             tasksRef.on('value', (snapshot) => {
                 const data = snapshot.val();
                 tasks = [];
-                for (let id in data) {
-                    tasks.push({ id, ...data[id] });
-                }
+                for (let id in data) { tasks.push({ id, ...data[id] }); }
                 render();
                 updateSmartStats();
             });
         }
 
+        function setDayFilter(day, el) {
+            dayFilter = day;
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            render();
+            updateSmartStats();
+        }
+
         function updateSmartStats() {
             let filtered = tasks;
-            if (personFilter !== 'All') filtered = filtered.filter(t => t.person === personFilter);
             if (dayFilter !== 'All') filtered = filtered.filter(t => t.day === dayFilter);
-
             const total = filtered.length;
             const done = filtered.filter(t => t.completed).length;
             const p = total > 0 ? Math.round((done / total) * 100) : 0;
-
             document.getElementById('progressBar').style.width = p + '%';
             document.getElementById('percentLabel').innerText = p + '%';
-            document.getElementById('statsTitle').innerText = (personFilter === 'All' ? 'Family' : personFilter) + " Progress";
         }
 
-        function toggleDone(id, currentStatus) {
-            // Updates the specific task in the cloud
-            db.ref('tasks/' + id).update({ completed: !currentStatus });
+        function addTask() {
+            const job = document.getElementById('jobSelect').value;
+            const person = document.getElementById('nameSelect').value;
+            if (dayFilter === 'All') return alert("Select a specific day (Mon-Sun) first!");
+            tasksRef.push({ job, person, day: dayFilter, completed: false });
         }
+
+        function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
 
         function removeTask(id) {
-            if (prompt("Enter Admin PIN to delete:") === ADMIN_PIN) {
-                db.ref('tasks/' + id).remove();
-            }
+            if (prompt("Admin PIN:") === ADMIN_PIN) db.ref('tasks/' + id).remove();
         }
 
         function render() {
             const display = document.getElementById('mainDisplay');
             display.innerHTML = '';
             const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
+            
             days.forEach(day => {
                 if (dayFilter !== 'All' && dayFilter !== day) return;
-                let dTasks = tasks.filter(t => t.day === day);
-                if (personFilter !== 'All') dTasks = dTasks.filter(t => t.person === personFilter);
+                const dTasks = tasks.filter(t => t.day === day);
                 if (dTasks.length === 0) return;
 
                 let html = `<div class="day-card"><div class="day-header">${day}</div>`;
                 dTasks.forEach(t => {
                     html += `
                     <div class="task-item ${t.completed ? 'completed' : ''}">
-                        <div style="font-weight:800; font-size:0.65rem; color:var(--primary);">${t.person}</div>
-                        <div style="font-weight:700; font-size:0.85rem;">${t.job}</div>
-                        <div style="display:flex; gap:5px; margin-top:8px;">
+                        <div style="font-weight:800; font-size:0.7rem; color:var(--primary);">${t.person}</div>
+                        <div style="font-weight:700; font-size:0.9rem; margin:5px 0;">${t.job}</div>
+                        <div style="display:flex; gap:8px;">
                             <button style="background:var(--success); flex:1; padding:8px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">
-                                ${t.completed ? '✅ Done' : '✔ Complete'}
+                                ${t.completed ? '✅' : 'Complete'}
                             </button>
-                            <button style="background:var(--danger); width:40px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
+                            <button style="background:var(--danger); width:45px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
                         </div>
                     </div>`;
                 });
@@ -132,9 +155,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
