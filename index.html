@@ -143,11 +143,26 @@
             if (prompt("This will clear ALL tasks. Pin:") === ADMIN_PIN) tasksRef.remove();
         }
 
-        function requestNotificationPermission() {
-            messaging.requestPermission().then(() => messaging.getToken())
-            .then(token => alert("Notifications Active! Token: " + token.substring(0,8) + "..."))
-            .catch(err => alert("Permission denied or blocked. Check browser settings."));
-        }
+    function requestNotificationPermission() {
+    // You MUST use your specific public key here
+    const publicVapidKey = 'BCN2BP-5hhrCwS8O7JyJ-tdkUb3HWgqczNYgWHtJcMfX7L7K6jft3fLQN_B7M1DX4-QqIg_gT7CbAAYO12RWGfk';
+
+    messaging.requestPermission()
+        .then(() => {
+            return messaging.getToken({ vapidKey: publicVapidKey });
+        })
+        .then(token => {
+            console.log("Token generated:", token);
+            alert("Notifications Active!");
+            // Optional: Save this token to Firebase so you can ping this phone
+            db.ref('users/Patrick/token').set(token);
+        })
+        .catch(err => {
+            console.error("Permission error:", err);
+            alert("Notification error: Check your browser site settings and ensure 'Allow' is selected.");
+        });
+}
+
 
         function openSettings() { document.getElementById('settingsOverlay').style.display = 'block'; }
         function closeSettings() { document.getElementById('settingsOverlay').style.display = 'none'; }
