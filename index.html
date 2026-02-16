@@ -2,85 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T-WFam Tasks</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>T-WFam Private</title>
+    <link rel="manifest" href="/manifest.json">
     <style>
-        :root { --primary: #6366f1; --success: #22c55e; --danger: #ef4444; --bg: #f8fafc; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 120px; }
-        .stats-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 20px; }
-        .progress-container { background: #e2e8f0; height: 12px; border-radius: 6px; overflow: hidden; margin: 10px 0; }
-        #progressBar { background: var(--success); height: 100%; width: 0%; transition: width 0.4s ease; }
-        .day-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 5px solid var(--primary); }
-        .day-header { font-weight: 800; color: var(--primary); margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .task-item { background: #f1f5f9; padding: 12px; border-radius: 10px; margin-bottom: 8px; }
-        .task-item.completed { opacity: 0.6; background: #dcfce7; }
-        .task-item.completed div { text-decoration: line-through; }
-        button { border: none; color: white; cursor: pointer; font-weight: bold; -webkit-tap-highlight-color: transparent; }
-        .chip-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
-        .chip { padding: 8px 15px; background: #e2e8f0; border-radius: 20px; font-size: 0.85rem; cursor: pointer; font-weight: bold; }
-        .chip.active { background: var(--primary); color: white; }
-        select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 1rem; }
-        #settingsOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; color:white; padding:30px; box-sizing:border-box; }
+        :root { --primary: #6366f1; --success: #22c55e; --danger: #ef4444; --bg: #f8fafc; --text: #1e293b; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; padding-bottom: 120px; }
+        
+        /* Privacy Gate Styles */
+        #authGate { position: fixed; inset: 0; background: var(--primary); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; color: white; }
+        .gate-input { padding: 15px; border-radius: 10px; border: none; width: 80%; margin: 15px 0; font-size: 1.2rem; text-align: center; }
+
+        /* App Styles */
+        .card { background: white; padding: 15px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        .progress-bar { background: #e2e8f0; height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        #progressFill { background: var(--success); height: 100%; width: 0%; transition: 0.5s; }
+        .day-section { margin-top: 20px; border-left: 4px solid var(--primary); padding-left: 10px; }
+        .task { background: #f1f5f9; padding: 10px; border-radius: 10px; margin: 8px 0; display: flex; align-items: center; justify-content: space-between; }
+        .task.done { opacity: 0.5; background: #dcfce7; text-decoration: line-through; }
+        
+        /* Settings Overlay */
+        #settings { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1500; padding: 30px; color: white; }
+        button { border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-main { background: var(--primary); color: white; padding: 15px; width: 100%; }
     </style>
 </head>
 <body>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h1 style="font-size:1.4rem; color:var(--primary); margin:0;">T-WFam Tasks</h1>
-        <button onclick="openSettings()" style="background:#64748b; padding:8px 15px; border-radius:8px; font-size:0.8rem;">⚙ Settings</button>
+    <div id="authGate">
+        <h1>T-WFam Tasks</h1>
+        <p>Please enter the Family Password to continue</p>
+        <input type="password" id="familyPass" class="gate-input" placeholder="Password...">
+        <button onclick="checkAuth()" class="btn-main" style="background: white; color: var(--primary);">Unlock App</button>
     </div>
 
-    <div class="stats-card">
-        <h2 id="statsTitle" style="margin:0; font-size:1.1rem;">Family Weekly Progress</h2>
-        <div class="progress-container"><div id="progressBar"></div></div>
-        <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:bold;">
-            <span id="percentLabel">0%</span><span>Completed</span>
+    <div id="appContent" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2 style="margin:0;">Family Dashboard</h2>
+            <button onclick="document.getElementById('settings').style.display='block'" style="background:#cbd5e1; padding:8px;">⚙️</button>
         </div>
+
+        <div class="card" style="margin-top:15px;">
+            <div style="display:flex; justify-content:space-between;"><span>Weekly Progress</span><span id="pct">0%</span></div>
+            <div class="progress-bar"><div id="progressFill"></div></div>
+        </div>
+
+        <div class="card">
+            <select id="jS" style="width:100%; padding:10px; margin-bottom:10px;">
+                <option value="Vacuuming">Vacuuming</option>
+                <option value="Dishes">Dishes</option>
+                <option value="Laundry">Laundry</option>
+                <option value="Bathroom">Bathroom</option>
+            </select>
+            <div style="display:flex; gap:10px;">
+                <select id="nS" style="flex:1; padding:10px;">
+                    <option value="Patrick">Patrick</option>
+                    <option value="Partner">Partner</option>
+                </select>
+                <select id="dS" style="flex:1; padding:10px;">
+                    <option value="Monday">Mon</option><option value="Tuesday">Tue</option>
+                    <option value="Wednesday">Wed</option><option value="Thursday">Thu</option>
+                    <option value="Friday">Fri</option><option value="Saturday">Sat</option>
+                    <option value="Sunday">Sun</option>
+                </select>
+            </div>
+            <button onclick="addTask()" class="btn-main" style="margin-top:10px;">➕ Add Task</button>
+        </div>
+
+        <div id="taskDisplay"></div>
     </div>
 
-    <div class="chip-container" id="daySelector">
-        <div class="chip active" onclick="setDayFilter('All', this)">All</div>
-        <div class="chip" onclick="setDayFilter('Monday', this)">Mon</div>
-        <div class="chip" onclick="setDayFilter('Tuesday', this)">Tue</div>
-        <div class="chip" onclick="setDayFilter('Wednesday', this)">Wed</div>
-        <div class="chip" onclick="setDayFilter('Thursday', this)">Thu</div>
-        <div class="chip" onclick="setDayFilter('Friday', this)">Fri</div>
-        <div class="chip" onclick="setDayFilter('Saturday', this)">Sat</div>
-        <div class="chip" onclick="setDayFilter('Sunday', this)">Sun</div>
-    </div>
-
-    <div class="stats-card">
-        <h3 style="margin-top:0; font-size:1rem;">Add New Task</h3>
-        <select id="jobSelect">
-            <option value="Vacuuming">Vacuuming</option>
-            <option value="Mopping">Mopping</option>
-            <option value="Dishes">Dishes</option>
-            <option value="Bathroom">Bathroom</option>
-            <option value="Laundry">Laundry</option>
-            <option value="Rubbish">Rubbish</option>
-        </select>
-        <select id="nameSelect">
-            <option value="Patrick">Patrick</option>
-            <option value="Partner">Partner</option>
-        </select>
-        <button onclick="addTask()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px;">➕ Add Task</button>
-    </div>
-
-    <div id="mainDisplay">Loading tasks...</div>
-
-    <div id="settingsOverlay">
-        <h2>Admin Settings</h2>
-        <hr style="border:0; border-top:1px solid #444; margin-bottom:20px;">
-        <button onclick="requestNotificationPermission()" style="background:var(--primary); padding:15px; width:100%; border-radius:10px; margin-bottom:15px;">🔔 Enable Notifications</button>
-        <button onclick="resetWeek()" style="background:var(--danger); padding:15px; width:100%; border-radius:10px; margin-bottom:30px;">🚨 Reset Entire Week</button>
-        <button onclick="closeSettings()" style="background:#475569; padding:12px; width:100%; border-radius:10px;">Close Menu</button>
+    <div id="settings">
+        <h2>Settings</h2>
+        <button onclick="resetWeek()" style="background:var(--danger); padding:15px; width:100%; margin-bottom:10px;">🚨 Reset Week</button>
+        <button onclick="logout()" style="background:#475569; padding:15px; width:100%; margin-bottom:10px;">🔒 Logout</button>
+        <button onclick="document.getElementById('settings').style.display='none'" style="background:white; color:black; padding:10px; width:100%;">Close</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
 
     <script>
+        // CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyDQOz-r2LIjk2Eyw19sy7yjzvhxafUFzKI",
             databaseURL: "https://family-clean-d428e-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -88,114 +91,82 @@
             messagingSenderId: "1067832584063",
             appId: "1:1067832584063:web:4f2c12e7374ccfeea75c4a"
         };
-
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const messaging = firebase.messaging();
         const tasksRef = db.ref('tasks');
+        const MASTER_PASS = "1234"; // CHANGE THIS TO YOUR SHARED PASSWORD
 
+        // AUTH LOGIC
+        function checkAuth() {
+            if(document.getElementById('familyPass').value === MASTER_PASS) {
+                localStorage.setItem('familyAuth', 'true');
+                showApp();
+            } else { alert("Wrong password!"); }
+        }
+
+        function showApp() {
+            if(localStorage.getItem('familyAuth') === 'true') {
+                document.getElementById('authGate').style.display = 'none';
+                document.getElementById('appContent').style.display = 'block';
+                initSync();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('familyAuth');
+            location.reload();
+        }
+
+        // TASK LOGIC
         let tasks = [];
-        let dayFilter = 'All';
-        const ADMIN_PIN = "1234";
-
-        function init() {
-            tasksRef.on('value', (snapshot) => {
-                const data = snapshot.val();
+        function initSync() {
+            tasksRef.on('value', snap => {
+                const data = snap.val();
                 tasks = [];
-                for (let id in data) { tasks.push({ id, ...data[id] }); }
+                for(let id in data) tasks.push({id, ...data[id]});
                 render();
-                updateSmartStats();
             });
-        }
-
-        function setDayFilter(day, el) {
-            dayFilter = day;
-            document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            render();
-            updateSmartStats();
-        }
-
-        function updateSmartStats() {
-            let filtered = tasks;
-            if (dayFilter !== 'All') filtered = filtered.filter(t => t.day === dayFilter);
-            const total = filtered.length;
-            const done = filtered.filter(t => t.completed).length;
-            const p = total > 0 ? Math.round((done / total) * 100) : 0;
-            document.getElementById('progressBar').style.width = p + '%';
-            document.getElementById('percentLabel').innerText = p + '%';
         }
 
         function addTask() {
-            const job = document.getElementById('jobSelect').value;
-            const person = document.getElementById('nameSelect').value;
-            if (dayFilter === 'All') return alert("Select a specific day (Mon-Sun) first!");
-            tasksRef.push({ job, person, day: dayFilter, completed: false });
-        }
-
-        function toggleDone(id, status) { db.ref('tasks/' + id).update({ completed: !status }); }
-
-        function removeTask(id) {
-            if (prompt("Admin PIN:") === ADMIN_PIN) db.ref('tasks/' + id).remove();
-        }
-
-        function resetWeek() {
-            if (prompt("This will clear ALL tasks. Pin:") === ADMIN_PIN) tasksRef.remove();
-        }
-
-    function requestNotificationPermission() {
-    // You MUST use your specific public key here
-    const publicVapidKey = 'BCN2BP-5hhrCwS8O7JyJ-tdkUb3HWgqczNYgWHtJcMfX7L7K6jft3fLQN_B7M1DX4-QqIg_gT7CbAAYO12RWGfk';
-
-    messaging.requestPermission()
-        .then(() => {
-            return messaging.getToken({ vapidKey: publicVapidKey });
-        })
-        .then(token => {
-            console.log("Token generated:", token);
-            alert("Notifications Active!");
-            // Optional: Save this token to Firebase so you can ping this phone
-            db.ref('users/Patrick/token').set(token);
-        })
-        .catch(err => {
-            console.error("Permission error:", err);
-            alert("Notification error: Check your browser site settings and ensure 'Allow' is selected.");
-        });
-}
-
-
-        function openSettings() { document.getElementById('settingsOverlay').style.display = 'block'; }
-        function closeSettings() { document.getElementById('settingsOverlay').style.display = 'none'; }
-
-        function render() {
-            const display = document.getElementById('mainDisplay');
-            display.innerHTML = '';
-            const daysOrder = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-            
-            daysOrder.forEach(day => {
-                if (dayFilter !== 'All' && dayFilter !== day) return;
-                const dTasks = tasks.filter(t => t.day === day);
-                if (dTasks.length === 0) return;
-
-                let html = `<div class="day-card"><div class="day-header">${day}</div>`;
-                dTasks.forEach(t => {
-                    html += `
-                    <div class="task-item ${t.completed ? 'completed' : ''}">
-                        <div style="font-weight:800; font-size:0.7rem; color:var(--primary);">${t.person}</div>
-                        <div style="font-weight:700; font-size:0.95rem; margin:5px 0;">${t.job}</div>
-                        <div style="display:flex; gap:10px;">
-                            <button style="background:var(--success); flex:1; padding:10px; border-radius:8px;" onclick="toggleDone('${t.id}', ${t.completed})">
-                                ${t.completed ? '✅ Done' : 'Complete'}
-                            </button>
-                            <button style="background:var(--danger); width:50px; border-radius:8px;" onclick="removeTask('${t.id}')">🗑</button>
-                        </div>
-                    </div>`;
-                });
-                display.innerHTML += html + `</div>`;
+            tasksRef.push({
+                job: document.getElementById('jS').value,
+                person: document.getElementById('nS').value,
+                day: document.getElementById('dS').value,
+                completed: false
             });
         }
 
-        init();
+        function toggle(id, status) { db.ref('tasks/'+id).update({completed: !status}); }
+        function resetWeek() { if(confirm("Clear all?")) tasksRef.remove(); }
+
+        function render() {
+            const container = document.getElementById('taskDisplay');
+            container.innerHTML = '';
+            const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+            
+            let total = tasks.length, done = tasks.filter(t=>t.completed).length;
+            let p = total > 0 ? Math.round((done/total)*100) : 0;
+            document.getElementById('progressFill').style.width = p+'%';
+            document.getElementById('pct').innerText = p+'%';
+
+            days.forEach(day => {
+                const dTasks = tasks.filter(t => t.day === day);
+                if(dTasks.length === 0) return;
+                let html = `<div class="day-section"><strong>${day}</strong>`;
+                dTasks.forEach(t => {
+                    html += `
+                    <div class="task ${t.completed?'done':''}" onclick="toggle('${t.id}', ${t.completed})">
+                        <div><b>${t.person}</b>: ${t.job}</div>
+                        <div>${t.completed?'✅':'⭕'}</div>
+                    </div>`;
+                });
+                container.innerHTML += html + `</div>`;
+            });
+        }
+
+        showApp(); // Check auth on load
     </script>
 </body>
 </html>
+
